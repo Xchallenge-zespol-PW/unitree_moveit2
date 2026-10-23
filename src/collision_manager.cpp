@@ -10,7 +10,7 @@ CollisionManager::CollisionManager(rclcpp::Node::SharedPtr node)
 void CollisionManager::addCube(const std::string& cube_id, const geometry_msgs::msg::Pose& cube_pose, double size)
 {
     moveit_msgs::msg::CollisionObject collision_object;
-    collision_object.header.frame_id = "base_link"; // Upewnij się, że to ten sam frame bazowy
+    collision_object.header.frame_id = "world";
     collision_object.id = cube_id;
 
     shape_msgs::msg::SolidPrimitive primitive;
@@ -30,7 +30,7 @@ void CollisionManager::addTable(const std::string& table_id,
                               double size_x, double size_y, double size_z)
 {
     moveit_msgs::msg::CollisionObject collision_object;
-    collision_object.header.frame_id = "base_link";
+    collision_object.header.frame_id = "world";
     collision_object.id = table_id;
 
     shape_msgs::msg::SolidPrimitive primitive;
