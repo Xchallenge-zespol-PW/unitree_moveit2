@@ -16,28 +16,34 @@ ArmController::ArmController(rclcpp::Node::SharedPtr node,
         "/servo_node/delta_twist_cmds", 10);
 }
 
-bool ArmController::moveToStart(const geometry_msgs::msg::Pose& target_left,
-                                const geometry_msgs::msg::Pose& target_right)
+bool ArmController::moveSingleArmWithCollisionAvoidance(const std::string& active_arm_name, const geometry_msgs::msg::Pose& target_pose)
 {
-    RCLCPP_INFO(logger_, "Ruch ramion do pozycji startowej...");
-
-    left_arm_.setPoseTarget(target_left);
-    right_arm_.setPoseTarget(target_right);
-
-    moveit::planning_interface::MoveGroupInterface::Plan plan_left, plan_right;
+    using moveit::planning_interface::MoveGroupInterface;
     
-    if (left_arm_.plan(plan_left) != moveit::core::MoveItErrorCode::SUCCESS) {
-        RCLCPP_ERROR(logger_, "Błąd planowania dla lewego ramienia!");
+    // Określamy które ramię jest aktywne, a które ma robić za statyczną przeszkodę
+    std::string other_arm_name = (active_arm_name == "left_panda_arm") ? "right_panda_arm" : "left_panda_arm";
+    
+    MoveGroupInterface active_arm(node_, active_arm_name);
+    MoveGroupInterface other_arm(node_, other_arm_name);
+    MoveGroupInterface both_arms(node_, "both_arms");
+
+    // 1. Pobieramy aktualny stan drugiego ramienia, żeby zablokować je jako przeszkodę kolizyjną
+    moveit_msgs::msg::RobotState current_other_state;
+    other_arm.getCurrentState(current_other_state);
+    active_arm.setStartState(*active_arm.getCurrentState());
+
+    // 2. Ustawiamy cel dla wybranego ramienia
+    active_arm.setPoseTarget(target_pose);
+    active_arm.setPlanningTime(5.0);
+
+    MoveGroupInterface::Plan plan_active;
+    if (active_arm.plan(plan_active) != moveit::core::MoveItErrorCode::SUCCESS) {
+        RCLCPP_ERROR(logger_, "Nie udało się zaplanować ruchu dla ramienia: %s", active_arm_name.c_str());
         return false;
     }
-    left_arm_.execute(plan_left);
 
-    if (right_arm_.plan(plan_right) != moveit::core::MoveItErrorCode::SUCCESS) {
-        RCLCPP_ERROR(logger_, "Błąd planowania dla prawego ramienia!");
-        return false;
-    }
-    right_arm_.execute(plan_right);
-
+    // 3. Wykonanie ruchu
+    active_arm.execute(plan_active);
     return true;
 }
 
