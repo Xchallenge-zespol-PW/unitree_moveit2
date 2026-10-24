@@ -2,8 +2,7 @@
 #include "unitree_moveit2/collision_manager.hpp"
 #include "unitree_moveit2/arm_controller.hpp"
 
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+
 
 int main(int argc, char * argv[])
 {
@@ -27,16 +26,11 @@ int main(int argc, char * argv[])
 
     // 2. Przykładowy ruch lewego ramienia z omijaniem kolizji
     geometry_msgs::msg::Pose target;
-    target.position.x = 0.4;
-    target.position.y = 0.2;
-    target.position.z = 0.3;
+    target.position.x = 0.54;
+    target.position.y = 0.0;
+    target.position.z = 0.51;
 
-    tf2::Quaternion q;
-    q.setRPY(0.0, 1.57, 0.0); // roll, pitch, yaw w radianach (np. pitch 90 stopni)
-    target.orientation.x = q.x();
-    target.orientation.y = q.y();
-    target.orientation.z = q.z();
-    target.orientation.w = q.w();
+    collision_mgr.addCube("cube_0", target, 0.05);
 
     rclcpp::sleep_for(std::chrono::milliseconds(500));
     if(arm_ctrl.moveSingleArmWithCollisionAvoidance("left_panda_arm", target))

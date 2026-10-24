@@ -16,6 +16,40 @@ ArmController::ArmController(rclcpp::Node::SharedPtr node,
         "/servo_node/delta_twist_cmds", 10);
 }
 
+geometry_msgs::msg::Pose generateStartPose(
+    const geometry_msgs::msg::Pose& target_pose, 
+    double x_offset, 
+    double y_offset = 0.0, 
+    double z_offset = 0.0,
+    bool flip_down = true)
+{
+    geometry_msgs::msg::Pose start_pose;
+
+    tf2::Quaternion q_target;
+    tf2::fromMsg(target_pose.orientation, q_target);
+
+    if (flip_down)
+    {
+        tf2::Quaternion q_flip(1.0, 0.0, 0.0, 0.0); 
+        
+        q_target = q_target * q_flip;
+    }
+
+    start_pose.orientation = tf2::toMsg(q_target);
+
+    tf2::Vector3 local_offset(x_offset, y_offset, z_offset);
+
+    tf2::fromMsg(target_pose.orientation, q_target);
+
+    tf2::Vector3 global_offset = tf2::quatRotate(q_target, local_offset);
+
+    start_pose.position.x = target_pose.position.x + global_offset.x();
+    start_pose.position.y = target_pose.position.y + global_offset.y();
+    start_pose.position.z = target_pose.position.z + global_offset.z();
+
+    return start_pose;
+}
+
 bool ArmController::moveSingleArmWithCollisionAvoidance(const std::string& active_arm_name, const geometry_msgs::msg::Pose& target_pose)
 {
     using moveit::planning_interface::MoveGroupInterface;
@@ -28,8 +62,10 @@ bool ArmController::moveSingleArmWithCollisionAvoidance(const std::string& activ
 
     active_arm.setStartStateToCurrentState();
 
+    
+    geometry_msgs::msg::Pose start_pose = generateStartPose(target_pose, 0.0, -0.15);
 
-    active_arm.setPoseTarget(target_pose);
+    active_arm.setPoseTarget(start_pose);
     active_arm.setPlanningTime(5.0);
     RCLCPP_INFO(logger_, "Planning frame: %s", active_arm.getPlanningFrame().c_str());
     MoveGroupInterface::Plan plan_active;
