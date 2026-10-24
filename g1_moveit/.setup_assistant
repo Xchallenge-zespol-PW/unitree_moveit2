@@ -1,0 +1,10 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: unitree_description
+    relative_path: urdf/unitree_g1.urdf
+  srdf:
+    relative_path: config/g1_29dof.srdf
+  package_settings:
+    author_name: Igor Reszka
+    author_email: igor.reszka2007@gmail.com
+    generated_timestamp: 1792850829
