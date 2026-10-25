@@ -33,8 +33,19 @@ int main(int argc, char * argv[])
     collision_mgr.addCube("cube_0", target, 0.05);
 
     rclcpp::sleep_for(std::chrono::milliseconds(500));
-    if(arm_ctrl.moveSingleArmWithCollisionAvoidance("left_panda_arm", target))
-        arm_ctrl.pushObjectWithServo("left_hand", 0.1, 5.0);
+    arm_ctrl.moveSingleArmWithCollisionAvoidance("left_panda_arm", target, 0, -0.15, 0);
+        
+    
+    geometry_msgs::msg::Pose target_2;
+    target_2.position.x = 0.65;
+    target_2.position.y = 0.0;
+    target_2.position.z = 0.51;
+
+    collision_mgr.addCube("cube_1", target_2, 0.05);
+
+    rclcpp::sleep_for(std::chrono::milliseconds(500));
+    arm_ctrl.moveSingleArmWithCollisionAvoidance("right_panda_arm", target_2, 0, 0.15, 0);
+
 
     rclcpp::shutdown();
     return 0;

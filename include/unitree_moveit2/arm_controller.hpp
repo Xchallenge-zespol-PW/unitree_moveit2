@@ -17,7 +17,12 @@ public:
                   const std::string& left_group_name = "left_arm",
                   const std::string& right_group_name = "right_arm");
 
-    bool moveSingleArmWithCollisionAvoidance(const std::string& active_arm_name, const geometry_msgs::msg::Pose& target_pose);
+    bool moveSingleArmWithCollisionAvoidance(const std::string& active_arm_name,
+                    const geometry_msgs::msg::Pose& target_pose,
+                    double offset_x = 0.0,
+                    double offset_y = 0.0,
+                    double offset_z = 0.0,
+                    bool flip_down = true);
     
     void pushObjectWithServo(const std::string& ee_frame_name,
                              double linear_speed_x, 

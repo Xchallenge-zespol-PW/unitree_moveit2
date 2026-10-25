@@ -16,20 +16,20 @@ find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
 # Plik wykonywalny łączący main oraz obie klasy pomocnicze
-add_executable(unitree_node 
+add_executable(unitree_moveit2_node 
   src/logic_node_test.cpp 
   src/arm_controller.cpp 
   src/collision_manager.cpp
 )
 
-target_include_directories(unitree_node PUBLIC
+target_include_directories(unitree_moveit2_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-target_compile_features(unitree_node PUBLIC c_std_99 cxx_std_17)
+target_compile_features(unitree_moveit2_node PUBLIC c_std_99 cxx_std_17)
 
 ament_target_dependencies(
-  unitree_node
+  unitree_moveit2_node
   "moveit_ros_planning_interface"
   "rclcpp"
   "geometry_msgs"
@@ -39,7 +39,7 @@ ament_target_dependencies(
   "tf2_geometry_msgs"
 )
 
-install(TARGETS unitree_node
+install(TARGETS unitree_moveit2_node
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
