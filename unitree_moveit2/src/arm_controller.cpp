@@ -50,7 +50,13 @@ geometry_msgs::msg::Pose generateStartPose(
     return start_pose;
 }
 
-bool ArmController::moveSingleArmWithCollisionAvoidance(const std::string& active_arm_name, const geometry_msgs::msg::Pose& target_pose)
+bool ArmController::moveSingleArmWithCollisionAvoidance(
+     const std::string& active_arm_name,
+     const geometry_msgs::msg::Pose& target_pose,
+     double offset_x,
+     double offset_y,
+     double offset_z,
+     bool flip_down)
 {
     using moveit::planning_interface::MoveGroupInterface;
     
@@ -63,7 +69,7 @@ bool ArmController::moveSingleArmWithCollisionAvoidance(const std::string& activ
     active_arm.setStartStateToCurrentState();
 
     
-    geometry_msgs::msg::Pose start_pose = generateStartPose(target_pose, 0.0, -0.15);
+    geometry_msgs::msg::Pose start_pose = generateStartPose(target_pose, offset_x, offset_y, offset_z, flip_down);
 
     active_arm.setPoseTarget(start_pose);
     active_arm.setPlanningTime(5.0);
