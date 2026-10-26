@@ -61,7 +61,7 @@ bool ArmController::moveSingleArmWithCollisionAvoidance(
     using moveit::planning_interface::MoveGroupInterface;
     
     
-    std::string other_arm_name = (active_arm_name == "left_panda_arm") ? "right_panda_arm" : "left_panda_arm";
+    std::string other_arm_name = (active_arm_name == "left_arm") ? "right_arm" : "left_arm";
     
     MoveGroupInterface active_arm(node_, active_arm_name);
     MoveGroupInterface other_arm(node_, other_arm_name);

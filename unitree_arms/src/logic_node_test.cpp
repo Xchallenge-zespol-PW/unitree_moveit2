@@ -11,7 +11,7 @@ int main(int argc, char * argv[])
 
     // Inicjalizacja obu klas na tym samym wskaźniku węzła
     CollisionManager collision_mgr(node);
-    ArmController arm_ctrl(node, "left_panda_arm", "right_panda_arm");
+    ArmController arm_ctrl(node, "left_arm", "right_arm");
 
     // 1. Dodanie stołu do sceny kolizji
     geometry_msgs::msg::Pose table_pose;
@@ -33,7 +33,7 @@ int main(int argc, char * argv[])
     collision_mgr.addCube("cube_0", target, 0.05);
 
     rclcpp::sleep_for(std::chrono::milliseconds(500));
-    arm_ctrl.moveSingleArmWithCollisionAvoidance("left_panda_arm", target, 0, -0.15, 0);
+    arm_ctrl.moveSingleArmWithCollisionAvoidance("left_arm", target, 0, -0.15, 0);
         
     
     geometry_msgs::msg::Pose target_2;
@@ -44,7 +44,7 @@ int main(int argc, char * argv[])
     collision_mgr.addCube("cube_1", target_2, 0.05);
 
     rclcpp::sleep_for(std::chrono::milliseconds(500));
-    arm_ctrl.moveSingleArmWithCollisionAvoidance("right_panda_arm", target_2, 0, 0.15, 0);
+    arm_ctrl.moveSingleArmWithCollisionAvoidance("right_arm", target_2, 0, 0.15, 0);
 
 
     rclcpp::shutdown();
