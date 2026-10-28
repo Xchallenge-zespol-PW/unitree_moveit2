@@ -6,7 +6,7 @@
     <xacro:include filename="$(find unitree_description)/urdf/unitree_g1.urdf" />
 
     <!-- Import control_xacro -->
-    <xacro:include filename="g1_29dof.ros2_control.xacro" />
+    <xacro:include filename="$(find unitree_description)/xacro/ros2_control/ros2_control.xacro" />
 
 
     <!-- <xacro:g1_29dof_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/> -->
