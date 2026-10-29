@@ -15,7 +15,7 @@ def build_moveit_config():
             robot_name="g1_29dof",
             package_name="g1_moveit",
         )
-        .robot_description(file_path=str(pkg_share / "config" / "g1_29dof.urdf")) # lub odpowiednik URDF
+        .robot_description(file_path=str(pkg_share / "config" / "g1_29dof.urdf.xacro")) # lub odpowiednik URDF
         .robot_description_semantic(file_path="config/g1_29dof.srdf")
         .robot_description_kinematics(file_path="config/kinematics.yaml")
         .joint_limits(file_path="config/joint_limits.yaml")

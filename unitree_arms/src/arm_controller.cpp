@@ -6,116 +6,106 @@ ArmController::ArmController(rclcpp::Node::SharedPtr node,
     : node_(node),
       left_arm_(node, left_group_name),
       right_arm_(node, right_group_name),
-      logger_(rclcpp::get_logger("ArmController"))
+      logger_(rclcpp::get_logger("ArmController")),
+      left_group_name_(left_group_name),
+      right_group_name_(right_group_name)
 {
     left_arm_.setPlanningTime(5.0);
     right_arm_.setPlanningTime(5.0);
-
 
     servo_publisher_ = node_->create_publisher<geometry_msgs::msg::TwistStamped>(
         "/servo_node/delta_twist_cmds", 10);
 }
 
-geometry_msgs::msg::Pose generateStartPose(
-    const geometry_msgs::msg::Pose& target_pose, 
-    double x_offset, 
-    double y_offset = 0.0, 
-    double z_offset = 0.0,
-    bool flip_down = true)
+geometry_msgs::msg::PoseStamped generateStartPose(
+    const geometry_msgs::msg::PoseStamped& target_pose, 
+    tf2::Vector3 offset)
 {
-    geometry_msgs::msg::Pose start_pose;
+    geometry_msgs::msg::PoseStamped start_pose;
+    
+    start_pose.header = target_pose.header;
+    start_pose.pose.orientation = target_pose.pose.orientation;
 
     tf2::Quaternion q_target;
-    tf2::fromMsg(target_pose.orientation, q_target);
+    tf2::fromMsg(target_pose.pose.orientation, q_target);
 
-    if (flip_down)
-    {
-        tf2::Quaternion q_flip(1.0, 0.0, 0.0, 0.0); 
-        
-        q_target = q_target * q_flip;
-    }
+    tf2::Vector3 global_offset = tf2::quatRotate(q_target, offset);
 
-    start_pose.orientation = tf2::toMsg(q_target);
-
-    tf2::Vector3 local_offset(x_offset, y_offset, z_offset);
-
-    tf2::fromMsg(target_pose.orientation, q_target);
-
-    tf2::Vector3 global_offset = tf2::quatRotate(q_target, local_offset);
-
-    start_pose.position.x = target_pose.position.x + global_offset.x();
-    start_pose.position.y = target_pose.position.y + global_offset.y();
-    start_pose.position.z = target_pose.position.z + global_offset.z();
+    start_pose.pose.position.x = target_pose.pose.position.x + global_offset.x();
+    start_pose.pose.position.y = target_pose.pose.position.y + global_offset.y();
+    start_pose.pose.position.z = target_pose.pose.position.z + global_offset.z();
 
     return start_pose;
 }
 
 bool ArmController::moveSingleArmWithCollisionAvoidance(
      const std::string& active_arm_name,
-     const geometry_msgs::msg::Pose& target_pose,
-     double offset_x,
-     double offset_y,
-     double offset_z,
-     bool flip_down)
+     const geometry_msgs::msg::PoseStamped& target_pose,
+     tf2::Vector3 offset)
 {
     using moveit::planning_interface::MoveGroupInterface;
     
-    
-    std::string other_arm_name = (active_arm_name == "left_arm") ? "right_arm" : "left_arm";
+    std::string other_arm_name = (active_arm_name == left_group_name_) ? right_group_name_ : left_group_name_;
     
     MoveGroupInterface active_arm(node_, active_arm_name);
     MoveGroupInterface other_arm(node_, other_arm_name);
 
     active_arm.setStartStateToCurrentState();
-
     
-    geometry_msgs::msg::Pose start_pose = generateStartPose(target_pose, offset_x, offset_y, offset_z, flip_down);
+    geometry_msgs::msg::PoseStamped start_pose = generateStartPose(target_pose, offset);
 
     active_arm.setPoseTarget(start_pose);
     active_arm.setPlanningTime(5.0);
-    RCLCPP_INFO(logger_, "Planning frame: %s", active_arm.getPlanningFrame().c_str());
+
+    active_arm.setPlanningPipelineId("ompl");
+    active_arm.setPlannerId("RRTConnect");
+
+    RCLCPP_INFO(logger_, "Planning frame (RRTConnect): %s | Target frame: %s", 
+                active_arm.getPlanningFrame().c_str(), 
+                target_pose.header.frame_id.c_str());
+                
     MoveGroupInterface::Plan plan_active;
     if (active_arm.plan(plan_active) != moveit::core::MoveItErrorCode::SUCCESS) {
-        RCLCPP_ERROR(logger_, "Nie udało się zaplanować ruchu dla ramienia: %s", active_arm_name.c_str());
+        RCLCPP_ERROR(logger_, "Nie udało się zaplanować ruchu (RRTConnect) dla ramienia: %s", active_arm_name.c_str());
         return false;
     }
 
-    // 3. Wykonanie ruchu
     active_arm.execute(plan_active);
     return true;
 }
 
-void ArmController::pushObjectWithServo(const std::string& ee_frame_name,
-                                      double linear_speed_x, 
-                                      double duration_sec)
+bool ArmController::pushCubeWithPilz(
+     const std::string& active_arm_name,
+     const geometry_msgs::msg::PoseStamped& target_pose,
+     tf2::Vector3 push_offset)
 {
-    RCLCPP_INFO(logger_, "Rozpoczęcie pchania kostki za pomocą MoveIt Servo...");
+    using moveit::planning_interface::MoveGroupInterface;
+    
+    MoveGroupInterface active_arm(node_, active_arm_name);
+    active_arm.setStartStateToCurrentState();
+    
+    geometry_msgs::msg::PoseStamped final_pose = target_pose;
+    
+    final_pose.pose.position.x = target_pose.pose.position.x + push_offset.x();
+    final_pose.pose.position.y = target_pose.pose.position.y + push_offset.y();
+    final_pose.pose.position.z = target_pose.pose.position.z + push_offset.z();
 
-    rclcpp::Rate rate(100); 
-    auto start_time = node_->now();
+    active_arm.setPoseTarget(final_pose);
+    active_arm.setPlanningTime(5.0);
 
-    while (rclcpp::ok() && (node_->now() - start_time).seconds() < duration_sec)
-    {
-        geometry_msgs::msg::TwistStamped twist_msg;
-        twist_msg.header.stamp = node_->now();
-        twist_msg.header.frame_id = ee_frame_name; 
+    active_arm.setPlanningPipelineId("pilz_industrial_motion_planner");
+    active_arm.setPlannerId("LIN"); 
 
-
-        twist_msg.twist.linear.x = linear_speed_x;
-        twist_msg.twist.linear.y = 0.0;
-        twist_msg.twist.linear.z = 0.0;
-        twist_msg.twist.angular.x = 0.0;
-        twist_msg.twist.angular.y = 0.0;
-        twist_msg.twist.angular.z = 0.0;
-
-        servo_publisher_->publish(twist_msg);
-        rate.sleep();
+    RCLCPP_INFO(logger_, "Planning frame (Pilz LIN - pchanie równoległe): %s | Target frame: %s", 
+                active_arm.getPlanningFrame().c_str(), 
+                target_pose.header.frame_id.c_str());
+    
+    MoveGroupInterface::Plan plan_active;
+    if (active_arm.plan(plan_active) != moveit::core::MoveItErrorCode::SUCCESS) {
+        RCLCPP_ERROR(logger_, "Nie udało się zaplanować ruchu liniowego (Pilz LIN) dla ramienia: %s", active_arm_name.c_str());
+        return false;
     }
 
-    geometry_msgs::msg::TwistStamped stop_msg;
-    stop_msg.header.stamp = node_->now();
-    stop_msg.header.frame_id = ee_frame_name;
-    servo_publisher_->publish(stop_msg);
-    
-    RCLCPP_INFO(logger_, "Zakończono pchanie kostki.");
+    active_arm.execute(plan_active);
+    return true;
 }

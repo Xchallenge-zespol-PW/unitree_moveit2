@@ -1,16 +1,14 @@
 #include "unitree_moveit2/collision_manager.hpp"
-#include <shape_msgs/msg/solid_primitive.hpp>
-#include <moveit_msgs/msg/collision_object.hpp>
 
 CollisionManager::CollisionManager(rclcpp::Node::SharedPtr node)
     : node_(node), logger_(rclcpp::get_logger("CollisionManager"))
 {
 }
 
-void CollisionManager::addCube(const std::string& cube_id, const geometry_msgs::msg::Pose& cube_pose, double size)
+void CollisionManager::addCube(const std::string& cube_id, const geometry_msgs::msg::PoseStamped& cube_pose, double size)
 {
     moveit_msgs::msg::CollisionObject collision_object;
-    collision_object.header.frame_id = "world";
+    collision_object.header = cube_pose.header; 
     collision_object.id = cube_id;
 
     shape_msgs::msg::SolidPrimitive primitive;
@@ -18,7 +16,7 @@ void CollisionManager::addCube(const std::string& cube_id, const geometry_msgs::
     primitive.dimensions = {size, size, size};
 
     collision_object.primitives.push_back(primitive);
-    collision_object.primitive_poses.push_back(cube_pose);
+    collision_object.primitive_poses.push_back(cube_pose.pose);
     collision_object.operation = collision_object.ADD;
 
     planning_scene_interface_.applyCollisionObject(collision_object);
@@ -26,19 +24,19 @@ void CollisionManager::addCube(const std::string& cube_id, const geometry_msgs::
 }
 
 void CollisionManager::addTable(const std::string& table_id, 
-                              const geometry_msgs::msg::Pose& table_pose, 
-                              double size_x, double size_y, double size_z)
+                              const geometry_msgs::msg::PoseStamped& table_pose, 
+                              tf2::Vector3 size)
 {
     moveit_msgs::msg::CollisionObject collision_object;
-    collision_object.header.frame_id = "world";
+    collision_object.header = table_pose.header;
     collision_object.id = table_id;
 
     shape_msgs::msg::SolidPrimitive primitive;
     primitive.type = primitive.BOX;
-    primitive.dimensions = {size_x, size_y, size_z};
+    primitive.dimensions = {size.x(), size.y(), size.z()};
 
     collision_object.primitives.push_back(primitive);
-    collision_object.primitive_poses.push_back(table_pose);
+    collision_object.primitive_poses.push_back(table_pose.pose);
     collision_object.operation = collision_object.ADD;
 
     planning_scene_interface_.applyCollisionObject(collision_object);
